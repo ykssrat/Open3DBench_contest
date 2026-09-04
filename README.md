@@ -22,7 +22,7 @@ git clone --branch EDA_contest --single-branch \
 cd Open3DBench
 ```
 
-Download the input archive, place it in `input/`, and extract it:
+Download the input archive (see Section 4), place it in `input/`, and extract it:
 
 ```bash
 mkdir -p input
@@ -85,19 +85,9 @@ The provided OpenROAD source adds a per-net routing-layer range to `GlobalRouter
 2. Route bottom-die subnets on `metal2-metal10` and top-die subnets on `metal11-metal20` in isolated OpenROAD processes.
 3. Merge the two standard guide results and import them into the final `5_1_grt.odb`.
 
-### 3.3 HBT and subnet update interface
+### 3.3 HBT and subnet naming
 
-Algorithms that modify HBT placement or introduce additional net splits may specify GRT_PREPARE_TCL, which points to a Tcl preprocessing script that edits the loaded OpenDB design before net classification. The flow writes the result to `4_grt_input.odb` and `4_grt_input.def`, and both GRT passes and the merge step use that same snapshot.
-
-Any HBT instance created by the GRT preparation script must satisfy the following requirements:
-
-- The instance name must begin with HBT_ or LS_HBT_.
-- The BOT pin must connect to exactly one bottom-die subnet.
-- The TOP pin must connect to exactly one top-die subnet.
-- The two subnets must form a matching <base>_BOT / <base>_TOP pair.
-- Each HBT instance must occupy a distinct site on the 6.4 µm HBT grid.
-
-If GRT_PREPARE_TCL is not set, the baseline directly routes the supplied `4_cts.odb` without creating an intermediate `4_grt_input.odb` or `4_grt_input.def` snapshot.
+Existing HBT instances keep names beginning with `HBT_`. New HBT instances introduced by Metal Layer Sharing must be named `LS_HBT_<id>`, where `<id>` uniquely identifies each HBT. Subnets derived from an original net must be named `<original_net>__MLS__S<id>__BOT` or `<original_net>__MLS__S<id>__TOP`; `<original_net>` is the exact original net name, and `S<id>` uniquely identifies each subnet derived from it.
 
 ## 4. Input and Output Files
 

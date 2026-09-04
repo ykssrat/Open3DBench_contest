@@ -41,6 +41,11 @@ def name_die(name: str) -> str | None:
     return None
 
 
+def is_hbt_instance_name(name: str) -> bool:
+    """Return whether an instance follows either supported HBT naming path."""
+    return name.startswith(("HBT_", "LS_HBT_"))
+
+
 def parse_inst_die_map(def_path: Path) -> dict[str, str]:
     """Map instance name -> bottom|upper using DEF component lines."""
     inst_die_map: dict[str, str] = {}
@@ -229,7 +234,7 @@ def pin_ref_die(
     """Return the die touched by one instance pin or top-level DEF pin."""
     if pin_ref.inst == "PIN":
         return (pin_die_map or {}).get(pin_ref.pin)
-    if pin_ref.inst.startswith("HBT_"):
+    if is_hbt_instance_name(pin_ref.inst):
         if pin_ref.pin == "BOT":
             return "bottom"
         if pin_ref.pin == "TOP":

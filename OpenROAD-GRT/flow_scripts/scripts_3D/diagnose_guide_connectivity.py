@@ -297,7 +297,7 @@ def diagnose_net(
     for inst, x, y in pins:
         if not pin_covered(x, y, rects, margin):
             uncovered += 1
-            if inst.startswith("HBT_"):
+            if inst.startswith(("HBT_", "LS_HBT_")):
                 hbt_uncovered += 1
 
     cc = 0
