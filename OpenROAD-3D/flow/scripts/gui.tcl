@@ -33,7 +33,8 @@ if {![info exist ::env(GUI_NO_TIMING)]} {
   if {$sdc_file == ""} {
     set sdc_file $::env(SDC_FILE)
   }
-  read_sdc $sdc_file
+  source [file join [file dirname [info script]] sdc_compat.tcl]
+  read_sdc_compat $sdc_file
   if [file exists $::env(PLATFORM_DIR)/derate.tcl] {
     source $::env(PLATFORM_DIR)/derate.tcl
   }

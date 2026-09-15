@@ -15,14 +15,15 @@ Participants are required to jointly optimize metal layer sharing net selection 
 Pull the contest image and clone the `EDA_contest` branch:
 
 ```bash
-docker pull gaocr/3dbench-contest:20260724
+docker pull gaocr/3dbench-contest:20260914
 
 git clone --branch EDA_contest --single-branch \
   https://github.com/lamda-bbo/Open3DBench.git
 cd Open3DBench
 ```
 
-Download the input archive (see Section 4), place it in `input/`, and extract it:
+Extract the release bundle linked in Section 4, place its input archive in this
+repository's `input/` directory, and unpack the input archive:
 
 ```bash
 mkdir -p input
@@ -91,22 +92,19 @@ Existing HBT instances keep names beginning with `HBT_`. New HBT instances intro
 
 ## 4. Input and Output Files
 
-Input package download:
+Download the [release bundle from Google Drive](https://drive.google.com/file/d/1BvkJXGITgEXt2EHV_bVx3Fz9HOedyWXk/view?usp=sharing),
+which includes the inputs, baseline source, and Docker image. After extracting
+`Open3DBench-offline-20260915.tar.gz`, the input archive is located at:
 
-> [Download the public input package from Google Drive](https://drive.google.com/file/d/1o4ExxQX9lBswf4VWYGUsLMqjWBKLCTW6/view?usp=share_link)
+```text
+Open3DBench-offline-20260915/Open3DBench/input/open3dbench_8cases_post_hbt_input_20260724.tar.gz
+```
 
-Expected archive: `open3dbench_8cases_post_hbt_input_20260724.tar.gz`
+The inputs use a 6.4 um HBT pitch, a 3.0 ohm HBT series resistance, and
+0.6 fF total HBT capacitance.
 
-Current public package revision: `2026-08-31`. The Google Drive file is
-updated in place so that this download link remains stable. This revision uses
-a 6.4 um generated-via and minimum HBT center-to-center pitch, a 3.0 ohm HBT
-series resistance, and 0.6 fF total HBT capacitance.
-
-Older revisions used the same archive name. Verify the SHA-256 below before
-extracting the package.
-
-SHA-256:
-`a7e254f8f4f2b84696ba2601ea6d2e4da76d083a336ac01981f0ed6b8c196814`
+Input archive SHA-256:
+`d27c12edb98bbda2c250f879b46361bce5d1d574f69b9bb2aec68c6049f6af2b`
 
 ```text
 open3dbench_8cases_post_hbt_input_20260724/
@@ -162,21 +160,19 @@ Before DRT, the evaluator regenerates a canonical DEF and routing guide from `5_
 
 ## 5. Baseline Results
 
-The following baseline results was completed on all eight public cases
-with the supplied input package, a 6.4 um HBT pitch, the 3D GRT baseline, the
-binary 3D detailed-route evaluator, and `droute_end_iter=2`
-(initial routing plus two optimization iterations). TNS and WNS are setup
-metrics reported by OpenSTA after extraction of the final routed database.
-
-All eight rows were evaluated with the 3.0R/0.6fF HBT RC model.
+The table reports the existing eight-case baseline routes, produced with the
+3D GRT baseline and two detailed-routing optimization iterations
+(`droute_end_iter=2`). TNS and WNS are setup timing metrics re-evaluated from
+these routed databases using the supplied evaluator and timing constraints.
+All cases use a 6.4 um HBT pitch, 3.0 ohm resistance, and 0.6 fF total capacitance.
 
 | Case | HBTs / 30% Capacity | DRT-WL (um) | DRC | TNS (ns) | WNS (ns) |
 |---|---:|---:|---:|---:|---:|
-| `ariane133` | 4,025 / 7,300 | 5,678,764.46 | 15,276 | -3,590.99 | -1.58215 |
-| `ariane136` | 4,046 / 7,300 | 5,667,695.84 | 15,964 | -733,522 | -33.9247 |
-| `black_parrot` (`bp`) | 3,847 / 5,880 | 7,813,311.28 | 18,874 | -44,022.4 | -6.23185 |
-| `bp_fe` | 1,149 / 1,729 | 1,378,685.12 | 4,257 | -2,697.39 | -1.35101 |
-| `bp_be` | 1,105 / 2,176 | 2,368,525.41 | 8,099 | -1,526.59 | -1.4111 |
-| `bp_multi` | 3,072 / 4,687 | 3,883,744.71 | 13,778 | -38,118.1 | -6.50626 |
-| `swerv_wrapper` | 1,278 / 4,087 | 3,723,936.61 | 15,382 | -651.523 | -0.829661 |
-| `bp_quad` | 27,835 / 45,630 | 41,694,313.23 | 23,862 | -547,096 | -27.9043 |
+| `ariane133` | 4,025 / 7,300 | 5,678,764.46 | 15,276 | -21,178.44 | -4.57280 |
+| `ariane136` | 4,046 / 7,300 | 5,667,695.84 | 15,964 | -6,130,643.00 | -381.76276 |
+| `black_parrot` (`bp`) | 3,847 / 5,880 | 7,813,311.28 | 18,874 | -186,047.55 | -20.44161 |
+| `bp_fe` | 1,149 / 1,729 | 1,378,685.12 | 4,257 | -8,828.74 | -4.00944 |
+| `bp_be` | 1,105 / 2,176 | 2,368,525.41 | 8,099 | -6,886.91 | -4.32408 |
+| `bp_multi` | 3,072 / 4,687 | 3,883,744.71 | 13,778 | -90,280.86 | -15.93247 |
+| `swerv_wrapper` | 1,278 / 4,087 | 3,723,936.61 | 15,382 | -1,873.56 | -1.55317 |
+| `bp_quad` | 27,835 / 45,630 | 41,694,313.23 | 23,862 | -1,716,879.50 | -113.96867 |

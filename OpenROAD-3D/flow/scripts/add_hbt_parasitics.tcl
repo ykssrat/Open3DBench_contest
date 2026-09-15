@@ -73,7 +73,6 @@ proc add_hbt_parasitics {} {
   set resistance [hbt_rc_value HBT_RESISTANCE_OHM 3.0]
   set capacitance [hbt_rc_value HBT_CAPACITANCE_FF 0.6]
   set marker [hbt_extraction_marker]
-  set endpoint_cap [expr {$capacitance / 2.0}]
   set expected_via "hb_layer_0"
   if {[info exists ::env(HBT_DR_VIA_NAME)] && $::env(HBT_DR_VIA_NAME) ne ""} {
     set expected_via $::env(HBT_DR_VIA_NAME)
@@ -139,11 +138,20 @@ proc add_hbt_parasitics {} {
         utl::error MOL 615 "Invalid corrected HBT segment resistance on '$net_name': $corrected_resistance."
       }
       $rseg setResistance $corrected_resistance $corner
-      if {$source_node eq $target_node} {
-        $source_node addCapacitance $capacitance $corner
+      if {![$source_node isForeign] && ![$target_node isForeign]} {
+        # Native OpenRCX stores ground capacitance by RSeg ID. SPEF export
+        # distributes this capacitance equally to the segment's endpoints.
+        set ground_cap [$rseg getCapacitance $corner 0.0]
+        $rseg setCapacitance [expr {$ground_cap + $capacitance}] $corner
+      } elseif {[$source_node isForeign] && [$target_node isForeign]} {
+        if {$source_node eq $target_node} {
+          $source_node addCapacitance $capacitance $corner
+        } else {
+          $source_node addCapacitance [expr {$capacitance / 2.0}] $corner
+          $target_node addCapacitance [expr {$capacitance / 2.0}] $corner
+        }
       } else {
-        $source_node addCapacitance $endpoint_cap $corner
-        $target_node addCapacitance $endpoint_cap $corner
+        error "HBT RC segment on '$net_name' mixes native and foreign cap nodes."
       }
     }
     puts $out "$net_name\t$x\t$y\t[$rseg getResistance 0]\t$capacitance\t[$source_node getNode]\t[$target_node getNode]"

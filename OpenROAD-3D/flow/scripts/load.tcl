@@ -1,3 +1,5 @@
+source [file join [file dirname [info script]] sdc_compat.tcl]
+
 proc load_design {design_file sdc_file msg} {
   if {![info exists standalone] || $standalone} {
     # Read liberty files
@@ -22,7 +24,7 @@ proc load_design {design_file sdc_file msg} {
     }
 
     # Read SDC file
-    read_sdc $::env(RESULTS_DIR)/$sdc_file
+    read_sdc_compat $::env(RESULTS_DIR)/$sdc_file
 
     if [file exists $::env(PLATFORM_DIR)/derate.tcl] {
       source $::env(PLATFORM_DIR)/derate.tcl

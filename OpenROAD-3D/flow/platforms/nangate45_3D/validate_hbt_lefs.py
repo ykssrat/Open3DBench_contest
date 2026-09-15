@@ -9,6 +9,8 @@ from pathlib import Path
 
 HBT_PITCH_UM = 6.4
 HBT_CUT_WIDTH_UM = 0.5
+HBT_METAL_WIDTH_UM = 0.8
+HBT_ENCLOSURE_UM = (HBT_METAL_WIDTH_UM - HBT_CUT_WIDTH_UM) / 2
 HBT_CUT_SPACING_UM = HBT_PITCH_UM - HBT_CUT_WIDTH_UM
 HBT_RESISTANCE_OHM = 3.0
 HBT_CAPACITANCE_FF = 0.6
@@ -118,6 +120,28 @@ def validate(platform_dir: Path) -> None:
         "END hb_layerArray-0",
         layer_file,
     )
+    for layer_name in ("metal10", "metal11"):
+        metal_rect = re.search(
+            rf"LAYER\s+{layer_name}\s*;\s*RECT\s+"
+            r"(-?[0-9.]+)\s+(-?[0-9.]+)\s+(-?[0-9.]+)\s+(-?[0-9.]+)\s*;",
+            default_via,
+        )
+        half = HBT_METAL_WIDTH_UM / 2
+        expected = (-half, -half, half, half)
+        if metal_rect is None or any(
+            abs(float(actual) - target) > 1e-9
+            for actual, target in zip(metal_rect.groups(), expected)
+        ):
+            raise ValueError(f"hb_layer_0 {layer_name} must be a centered 0.8 BY 0.8 um rectangle")
+        enclosure = re.search(
+            rf"LAYER\s+{layer_name}\s*;\s*ENCLOSURE\s+([0-9.]+)\s+([0-9.]+)\s*;",
+            via_rule,
+        )
+        if enclosure is None or any(
+            abs(float(value) - HBT_ENCLOSURE_UM) > 1e-9
+            for value in enclosure.groups()
+        ):
+            raise ValueError(f"hb_layerArray-0 {layer_name} enclosure must be 0.15 BY 0.15 um")
     spacing = re.search(
         r"^\s*SPACING\s+([0-9.]+)\s+BY\s+([0-9.]+)\s*;",
         via_rule,
@@ -189,6 +213,7 @@ def validate(platform_dir: Path) -> None:
     print(
         f"PASS: {len(lefs)} LEFs; HBT pitch={HBT_PITCH_UM:g} um, "
         f"cut={HBT_CUT_WIDTH_UM:g} um, edge spacing={HBT_CUT_SPACING_UM:g} um, "
+        f"landing metal={HBT_METAL_WIDTH_UM:g} um, "
         f"resistance={HBT_RESISTANCE_OHM:g} ohm"
     )
     print(f"  TECH_LEF: {layer_file.relative_to(platform_dir)}")

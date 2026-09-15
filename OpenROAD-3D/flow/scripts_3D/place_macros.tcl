@@ -9,7 +9,8 @@ foreach lib_file $env(LIB_FILES) {
   read_lib $lib_file
 }
 read_def $::env(INPUT_DEF)
-read_sdc $::env(RESULTS_DIR)/1_synth.sdc
+source $::env(SCRIPTS_DIR)/sdc_compat.tcl
+read_sdc_compat $::env(RESULTS_DIR)/1_synth.sdc
 
 source evaluation_pack/macro_placement_dmp/$::env(INPUT_DESIGN_NAME).macro
 
@@ -24,4 +25,4 @@ set blockage_width [expr max($halo_max, $channel_max/2)]
 
 write_db $::env(RESULTS_DIR)/2_4_floorplan_macro.odb
 # write_sdc $::env(RESULTS_DIR)/2_floorplan.sdc
-# save_image -resolution 1 $::env(RESULTS_DIR)/2d_origin.webp 
+# save_image -resolution 1 $::env(RESULTS_DIR)/2d_origin.webp

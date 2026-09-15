@@ -20,7 +20,8 @@ source $::env(SCRIPTS_DIR)/read_liberty.tcl
 
 read_verilog $::env(RESULTS_DIR)/1_1_yosys.v
 link_design $::env(DESIGN_NAME)
-read_sdc $::env(SDC_FILE)
+source [file join [file dirname [info script]] sdc_compat.tcl]
+read_sdc_compat $::env(SDC_FILE)
 if [file exists $::env(PLATFORM_DIR)/derate.tcl] {
   source $::env(PLATFORM_DIR)/derate.tcl
 }
