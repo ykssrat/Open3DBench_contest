@@ -287,10 +287,10 @@ puts "\[INFO\] 边界/拓扑/宏障碍已导出至 $results_dir"
 # 2b. [AGENT_EXPORT_V1] 为全局指派求解器补充导出
 #   仅做读取与写出, 不改动任何元件布局.
 # ============================================================
-if {![info exists ::env(RESULTS_DIR)]} {
-    set ::env(RESULTS_DIR) "/workspace/Open3DBench/measure_run_bp_fe"
-}
-set __rd $::env(RESULTS_DIR)
+# 与第 1 节的 results_dir 强制统一: 否则会出现"导出到 A 目录 / 求解器读 B 目录",
+# 结果 best_hbt_locations.csv 与搬运阶段对不上, 静默变成 baseline.
+set ::env(RESULTS_DIR) $results_dir
+set __rd $results_dir
 file mkdir $__rd
 
 set __dbu [expr {int([$block getDbUnitsPerMicron])}]
@@ -403,9 +403,10 @@ if {$DO_MOVE} {
     set RUNPY [env_on GRT_PREPARE_RUNPY 1]
     set best_loc_file "$results_dir/best_hbt_locations.csv"
 
-    # 已有求解结果时没必要重跑求解器
-    if {$RUNPY && [file exists $best_loc_file]} {
-        puts "\[INFO\] 复用已有 $best_loc_file，跳过求解器"
+    # 默认每次重算: 旧结果很可能是上一版贪心求解器留下的, 复用会把回归掩盖成"无变化".
+    # 仅当显式 GRT_PREPARE_REUSE=1 时才复用.
+    if {$RUNPY && [file exists $best_loc_file] && [env_on GRT_PREPARE_REUSE 0]} {
+        puts "\[INFO\] GRT_PREPARE_REUSE=1 -> 复用已有 $best_loc_file"
         set RUNPY 0
     }
 

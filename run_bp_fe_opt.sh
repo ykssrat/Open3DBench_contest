@@ -37,7 +37,12 @@ fi
 
 # ================= 集成 HBT 优化预处理脚本 =================
 export GRT_PREPARE_TCL="${SCRIPT_DIR}/OpenROAD-GRT/flow_scripts/scripts_3D/algo_hbt_opt/grt_prepare.tcl"
+# 求解器输入/输出目录: 必须与 tcl 内的 results_dir 一致, 否则搬运阶段读不到结果
+export RESULTS_DIR="${SCRIPT_DIR}/measure_run_bp_fe"
+# 每次强制重算(不复用上一版求解器留下的 best_hbt_locations.csv)
+export GRT_PREPARE_REUSE=0
 echo "GRT_PREPARE_TCL=$GRT_PREPARE_TCL"
+echo "RESULTS_DIR=$RESULTS_DIR"
 # ==========================================================
 
 echo "========================================="

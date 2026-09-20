@@ -21,18 +21,29 @@ if HERE not in sys.path:
 RESULTS_DIR = os.environ.get("RESULTS_DIR") or "/workspace/Open3DBench/measure_run_bp_fe"
 
 
-def fallback_original(results_dir):
-    """回退: 直接把 HBT 原坐标写回 best_hbt_locations.csv."""
-    p = os.path.join(results_dir, "export_hbt_topology.csv")
+def _read_xy(path, kx, ky):
     rows = []
-    if os.path.exists(p):
-        with open(p, newline="", errors="ignore") as f:
-            for row in csv.DictReader(f):
-                try:
-                    rows.append((row["InstName"].strip(),
-                                 int(float(row["CurX"])), int(float(row["CurY"]))))
-                except (KeyError, TypeError, ValueError):
-                    continue
+    if not os.path.exists(path):
+        return rows
+    with open(path, newline="", errors="ignore") as f:
+        for row in csv.DictReader(f):
+            try:
+                rows.append((row["InstName"].strip(),
+                             int(float(row[kx])), int(float(row[ky]))))
+            except (KeyError, TypeError, ValueError):
+                continue
+    return rows
+
+
+def fallback_original(results_dir):
+    """回退: 直接把 HBT 原坐标写回 best_hbt_locations.csv.
+
+    注意 export_hbt_topology.csv 只有 Bot/Top 引脚坐标, 没有 CurX/CurY,
+    不能拿来当"原坐标"来源(会静默写出空文件); 优先用 export_hbt_current.csv.
+    """
+    rows = _read_xy(os.path.join(results_dir, "export_hbt_current.csv"), "CurX", "CurY")
+    if not rows:
+        rows = _read_xy(os.path.join(results_dir, "best_hbt_locations.csv"), "BestX", "BestY")
     out = os.path.join(results_dir, "best_hbt_locations.csv")
     with open(out, "w", newline="\n") as f:
         f.write("InstName,BestX,BestY\n")
