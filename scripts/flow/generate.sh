@@ -1,6 +1,8 @@
 #!/bin/bash
 # generate_scripts.sh - 用于生成8个独立运行脚本（带日志记录）
 
+GEN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 CASES=(
     "ariane133"
     "ariane136"
@@ -15,11 +17,11 @@ CASES=(
 for CASE in "${CASES[@]}"; do
     FILENAME="run_${CASE}.sh"
     # 使用 heredoc 生成文件内容，注意对 $ 符号进行转义
-    cat <<EOF > "$FILENAME"
+    cat <<EOF > "$GEN_DIR/$FILENAME"
 #!/bin/bash
 
 # 获取脚本所在目录
-SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "\$SCRIPT_DIR"
 
 # 定义当前case

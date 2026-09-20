@@ -59,6 +59,8 @@ cat reports/bp_fe/baseline/metrics.json
 
 替换 `bp_fe` 与 `baseline` 即可运行其他用例或保留多组实验输出。GRT 结果存放在 `output/`，评测报告存放在 `reports/`。
 
+批量跑流程与出报告的脚本已收进 `scripts/`，逐个说明见 [docs/SCRIPTS.md](docs/SCRIPTS.md)。
+
 ## 3. 仓库与基线
 
 ```text

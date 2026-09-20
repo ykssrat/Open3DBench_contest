@@ -60,7 +60,7 @@ while getopts ":c:i:o:r:p:P:t:y:bh" opt; do
   esac
 done
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"   # 仓库根
 # 官方流程里 tcl 的常见落点
 FLOW_TCL="OpenROAD-GRT/flow_scripts/scripts_3D/algo_hbt_opt/grt_prepare.tcl"
 

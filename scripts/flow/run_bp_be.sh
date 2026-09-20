@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # 获取脚本所在目录
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# 脚本位于 scripts/flow/，向上两级 = 仓库根（input/ output/ reports/ logs/ 均在仓库根）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$SCRIPT_DIR"
 
 # 定义当前case
-CASE="bp"
+CASE="bp_be"
 
 # 设置输入路径（使用绝对路径）
 INPUT="${SCRIPT_DIR}/input/open3dbench_8cases_post_hbt_input_20260724"
@@ -34,11 +35,6 @@ if [ ! -d "$INPUT" ]; then
     echo "错误: 输入目录不存在: $INPUT"
     exit 1
 fi
-
-# ================= 集成 HBT 优化预处理脚本 =================
-export GRT_PREPARE_TCL="${SCRIPT_DIR}/OpenROAD-GRT/flow_scripts/scripts_3D/algo_hbt_opt/grt_prepare.tcl"
-echo "GRT_PREPARE_TCL=$GRT_PREPARE_TCL"
-# ==========================================================
 
 echo "========================================="
 echo "运行GRT..."
