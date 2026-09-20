@@ -22,22 +22,27 @@ ALGO="${ROOT}/OpenROAD-GRT/flow_scripts/scripts_3D/algo_hbt_opt"
 
 cd "${ROOT}"
 
-export GRT_PREPARE_TCL="${ALGO}/grt_prepare.tcl"
-export RESULTS_DIR="${ROOT}/.contest/flow-work/results/nangate45_3D/${CASE}/${LABEL}"
+# baseline 标签 = 官方原流程(不挂 HBT 优化); 其它标签才注入 GRT_PREPARE_TCL
+if [ "${LABEL}" = "baseline" ]; then
+  unset GRT_PREPARE_TCL
+else
+  export GRT_PREPARE_TCL="${ALGO}/grt_prepare.tcl"
+fi
+# 注意: 不要覆盖 RESULTS_DIR —— 它由官方流程自己决定,
+# grt_prepare.tcl 会把求解器导出目录强制统一到同一个 results_dir.
 
 echo "=========================================================="
 echo "CASE=${CASE}  LABEL=${LABEL}  BASE=${BASE_LABEL}"
-echo "GRT_PREPARE_TCL=${GRT_PREPARE_TCL}"
-echo "RESULTS_DIR=${RESULTS_DIR}"
+echo "GRT_PREPARE_TCL=${GRT_PREPARE_TCL:-<未设置, 官方原流程>}"
 echo "=========================================================="
 
 T0=$(date +%s)
-./start_contest_docker.sh contest run-grt "${CASE}" "${INPUT}" "${LABEL}"
+./start_contest_docker.sh run-grt "${CASE}" "${INPUT}" "${LABEL}"
 T1=$(date +%s)
 GRT_SEC=$((T1 - T0))
 echo "[run_eval] GRT 用时 ${GRT_SEC}s"
 
-./start_contest_docker.sh contest evaluate \
+./start_contest_docker.sh evaluate \
     "${CASE}" "${INPUT}" "${ROOT}/output/${CASE}/${LABEL}" "${ROOT}/reports/${CASE}/${LABEL}"
 T2=$(date +%s)
 echo "[run_eval] evaluate 用时 $((T2 - T1))s"
