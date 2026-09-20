@@ -16,13 +16,16 @@ CASE=${1:-bp_fe}
 LABEL=${2:-agent_hbt}
 BASE_LABEL=${3:-baseline}
 
-ROOT=/workspace/Open3DBench
+ROOT=${CONTEST_ROOT:-/workspace/Open3DBench}
 INPUT="${ROOT}/input/open3dbench_8cases_post_hbt_input_20260724"
 ALGO="${ROOT}/OpenROAD-GRT/flow_scripts/scripts_3D/algo_hbt_opt"
+RUNNER="${ROOT}/scripts/flow/contest_env.sh"
 
 cd "${ROOT}"
 
 # baseline 标签 = 官方原流程(不挂 HBT 优化); 其它标签才注入 GRT_PREPARE_TCL
+# 注意: 必须用 contest_env.sh 启动 —— 赛方的 start_contest_docker.sh 不透传环境变量,
+#       在宿主机上 export GRT_PREPARE_TCL 进不了容器, 会静默跑成 baseline.
 if [ "${LABEL}" = "baseline" ]; then
   unset GRT_PREPARE_TCL
 else
@@ -37,12 +40,12 @@ echo "GRT_PREPARE_TCL=${GRT_PREPARE_TCL:-<未设置, 官方原流程>}"
 echo "=========================================================="
 
 T0=$(date +%s)
-./start_contest_docker.sh run-grt "${CASE}" "${INPUT}" "${LABEL}"
+"${RUNNER}" run-grt "${CASE}" "${INPUT}" "${LABEL}"
 T1=$(date +%s)
 GRT_SEC=$((T1 - T0))
 echo "[run_eval] GRT 用时 ${GRT_SEC}s"
 
-./start_contest_docker.sh evaluate \
+"${RUNNER}" evaluate \
     "${CASE}" "${INPUT}" "${ROOT}/output/${CASE}/${LABEL}" "${ROOT}/reports/${CASE}/${LABEL}"
 T2=$(date +%s)
 echo "[run_eval] evaluate 用时 $((T2 - T1))s"
