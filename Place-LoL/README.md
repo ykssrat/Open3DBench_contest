@@ -1,21 +1,21 @@
 # Place-LoL
 
-`Place-LoL` is the LoL workspace in this repository. It is used for two things:
+`Place-LoL` 是本仓库中的 LoL 工作区，用于两件事：
 
-1. convert common 3D benchmark descriptions into LoL placer inputs
-2. convert LoL placer outputs into standardized DEFs for `OpenROAD-3D`
+1. 将通用 3D 基准测试描述转换为 LoL 布局器输入
+2. 将 LoL 布局器输出转换为供 `OpenROAD-3D` 使用的标准化 DEF
 
-## Getting Started
+## 入门
 
-Pull the Docker image (it is shared with Place-MoL, so if you have pulled one during Place-MoL, you don't have to pull again here):
+拉取 Docker 镜像（与 Place-MoL 共用，如果在 Place-MoL 已拉取过则无需重复）：
 
 ```bash
 docker pull shiyunqi/open3dbench:place
 ```
 
-Download `benchmarks_lol.tar.gz` from [Google Drive](https://drive.google.com/file/d/1wVYCgee2k7_1JdmV4o6Q4sIgDpoCkAcn/view?usp=sharing) and extract it under the current directory:
+从 [Google Drive](https://drive.google.com/file/d/1wVYCgee2k7_1JdmV4o6Q4sIgDpoCkAcn/view?usp=sharing) 下载 `benchmarks_lol.tar.gz` 并解压到当前目录：
 
-The downloaded file is `benchmarks_lol.tar.gz`. After extraction and renaming, the directory should be `benchmarks/`.
+下载的文件为 `benchmarks_lol.tar.gz`。解压并重命名后，目录应为 `benchmarks/`。
 
 ```bash
 cd Place-LoL
@@ -24,9 +24,9 @@ tar -xzf benchmarks_lol.tar.gz -C .
 mv benchmarks_lol benchmarks
 ```
 
-Download `binaries.tar.gz` from [Google Drive](https://drive.google.com/file/d/1HHbYQmv12SQ_xUKSnKMVI6RVyX3Z8hPf/view?usp=sharing) and extract it under the current directory:
+从 [Google Drive](https://drive.google.com/file/d/1HHbYQmv12SQ_xUKSnKMVI6RVyX3Z8hPf/view?usp=sharing) 下载 `binaries.tar.gz` 并解压到当前目录：
 
-The downloaded file is `binaries.tar.gz`. After extraction and renaming, the directory should be `binaries/`.
+下载的文件为 `binaries.tar.gz`。解压后目录应为 `binaries/`。
 
 ```bash
 cd Place-LoL
@@ -34,67 +34,66 @@ wget -O binaries.tar.gz 'https://drive.google.com/file/d/1HHbYQmv12SQ_xUKSnKMVI6
 tar -xzf binaries.tar.gz -C .
 ```
 
-Enter the container from the `Place-LoL` root:
+从 `Place-LoL` 根目录进入容器：
 
 ```bash
 cd Place-LoL
 ./start_docker_place.sh
 ```
 
-Inside the container, the `Place-LoL` root is mounted at `/workspace`.
+容器内，`Place-LoL` 根目录挂载在 `/workspace`。
 
-## Files You Will Use
+## 会用到的文件
 
 ```text
 Place-LoL/
-├── start_docker_place.sh  # start the Docker environment
-├── convert_input.sh       # generate LoL input files
-├── convert_output.sh      # convert raw placer outputs into DEF files
-├── convert_file.sh        # compatibility wrapper around the two scripts above
-├── binaries/              # contest placer bundles, logs, raw outputs, and converted artifacts
-├── test/                  # per-design JSON configs for default and inflated
-├── benchmarks/            # shared benchmark resources used by conversion
-├── cmake/                 # CMake helper files for the conversion stack
-├── dreamplace/            # DREAMPlace-related source and support code used by the flow
-└── thirdparty/            # third-party dependencies used by the conversion and placement stack
+├── start_docker_place.sh  # 启动 Docker 环境
+├── convert_input.sh       # 生成 LoL 输入文件
+├── convert_output.sh      # 将布局器原始输出转换为 DEF 文件
+├── convert_file.sh        # 上面两个脚本的兼容封装
+├── binaries/              # 大赛布局器包、日志、原始输出与转换产物
+├── test/                  # default 与 inflated 两个变体的每设计 JSON 配置
+├── benchmarks/            # 转换所用的共享基准资源
+├── cmake/                 # 转换工具链的 CMake 辅助文件
+├── dreamplace/            # 流程用到的 DREAMPlace 相关源码与支撑代码
+└── thirdparty/            # 转换与布局工具链的第三方依赖
 ```
 
-## Variants
+## 变体
 
-Two benchmark variants are supported:
+支持两种基准变体：
 
-- `default`: the default converted netlist, consistent with the original LEF/DEF definitions
-- `inflated`: each cell is expanded by 5 site widths during placement, i.e. `0.95um`, to create a looser layout; this corresponds to the `padded` setting described in the paper
+- `default`：默认转换网表，与原始 LEF/DEF 定义一致
+- `inflated`：布局时每个单元扩展 5 个 site 宽度（即 `0.95um`），形成更松的布局；对应论文中的 `padded` 设置
 
-Their JSON configs are stored under:
+它们的 JSON 配置存放在：
 
 - [3D_input_default](./test/3D_input_default)
 - [3D_input_inflated](./test/3D_input_inflated)
 
-## Main Workflow
+## 主工作流
 
-**Pre-generated artifacts are already included in this repository.**
+**本仓库已包含预生成产物。**
 
-The converted input files are already stored under <u>`binaries/converted_input/`</u>.
+转换后的输入文件已存放在 <u>`binaries/converted_input/`</u>。
 
-For each placer, the runtime logs and raw placement outputs are already stored under that placer's own <u>`logs/`</u> and <u>`output/`</u> directories.
+每个布局器的运行日志与原始布局输出已存放在该布局器自己的 <u>`logs/`</u> 与 <u>`output/`</u> 目录。
 
-The converted DEF files generated from those placer outputs are already stored under <u>`binaries/converted_output/`</u>.
+由这些布局器输出转换得到的 DEF 文件已存放在 <u>`binaries/converted_output/`</u>。
 
-**These DEF files can be used directly for evaluation in `OpenROAD-3D`.**
+**这些 DEF 可直接用于 `OpenROAD-3D` 的评估。**
 
-If you would like to reproduce this pipeline yourself, you can follow the workflow below.
-
-### 1. Generate LoL inputs
+如需自行复现该流水线，可按以下流程操作。
+### 1. 生成 LoL 输入
 
 ```bash
 cd Place-LoL
 bash convert_input.sh <design|iccad_2022_all|iccad_2023_all> <default|inflated> 100
 ```
 
-Here, the unit is `0.01um`, and the terminal size is set to `100`, which corresponds to a terminal size of `1um` and a spacing of `1um`.
+这里单位是 `0.01um`，端子尺寸设为 `100`，对应端子尺寸 `1um`、间距 `1um`。
 
-Examples:
+示例：
 
 ```bash
 bash convert_input.sh aes default 100
@@ -103,15 +102,15 @@ bash convert_input.sh iccad_2022_all default 100
 bash convert_input.sh iccad_2023_all inflated 100
 ```
 
-This generates standardized input files under `binaries/converted_input/`.
+这会在 `binaries/converted_input/` 下生成标准化输入文件。
 
-### 2. Run a LoL placer
+### 2. 运行 LoL 布局器
 
-Run the selected placer inside `binaries/iccad2022/` or `binaries/iccad2023/`.
+在 `binaries/iccad2022/` 或 `binaries/iccad2023/` 中运行所选布局器。
 
-As one concrete example, this repository includes the `tcad25` placer under [Place-LoL/binaries/iccad2023/tcad25](./binaries/iccad2023/tcad25), which we are authorized to redistribute by Dr. Yuxuan Zhao and Prof. Bei Yu. This placer corresponds to the paper [`Analytical Heterogeneous Die-to-Die 3D Placement with Macros`](https://ieeexplore.ieee.org/document/10637265/), and one of its detailed usage instructions can be found in the [`tcad25` README](./binaries/iccad2023/tcad25/README.md). We sincerely thank Dr. Yuxuan Zhao and Prof. Bei Yu for their authorization and support.
+举一个具体例子：本仓库在 [Place-LoL/binaries/iccad2023/tcad25](./binaries/iccad2023/tcad25) 下收录了 `tcad25` 布局器，其再分发获得赵宇轩博士与虞 Bei 教授的授权。该布局器对应论文 [`Analytical Heterogeneous Die-to-Die 3D Placement with Macros`](https://ieeexplore.ieee.org/document/10637265/)，详细用法见 [`tcad25` README](./binaries/iccad2023/tcad25/README.md)。我们衷心感谢两位老师的授权与支持。
 
-Examples:
+示例：
 
 ```bash
 cd Place-LoL/binaries/iccad2023/tcad25
@@ -119,21 +118,21 @@ bash run.sh default
 bash run.sh inflated
 ```
 
-At this stage, each placer is expected to write its raw results into its own `output/` directory.
+此阶段，每个布局器应把原始结果写入自己的 `output/` 目录。
 
-### 3. Convert raw outputs into DEF
+### 3. 将原始输出转换为 DEF
 
 ```bash
 cd Place-LoL
 bash convert_output.sh <design|iccad2022_all|iccad2023_all> <method> <default|inflated>
 ```
 
-Use matching ICCAD 2022 or ICCAD 2023 combinations only:
+只能使用匹配的 ICCAD 2022 / ICCAD 2023 组合：
 
-- ICCAD 2022: designs `aes`, `dynamic_node`, `ibex`, `jpeg`, `swerv`; methods `cadb1021`, `cadb1051`
-- ICCAD 2023: designs `ariane133`, `ariane136`, `bp`, `bp_be`, `bp_fe`, `bp_multi`, `bp_quad`, `swerv_wrapper`; methods `cadb0013`, `cadb1038`, `cadb1049`, `tcad25`
+- ICCAD 2022：设计 `aes`、`dynamic_node`、`ibex`、`jpeg`、`swerv`；方法 `cadb1021`、`cadb1051`
+- ICCAD 2023：设计 `ariane133`、`ariane136`、`bp`、`bp_be`、`bp_fe`、`bp_multi`、`bp_quad`、`swerv_wrapper`；方法 `cadb0013`、`cadb1038`、`cadb1049`、`tcad25`
 
-Examples:
+示例：
 
 ```bash
 bash convert_output.sh aes cadb1021 default
@@ -142,16 +141,16 @@ bash convert_output.sh ariane133 cadb1038 default
 bash convert_output.sh iccad2023_all tcad25 inflated
 ```
 
-This writes DEF files into `binaries/converted_output/`.
+这会把 DEF 文件写入 `binaries/converted_output/`。
 
-## Output Locations
+## 输出位置
 
-- Generated LoL inputs:
+- 生成的 LoL 输入：
   `binaries/converted_input/<variant>/`
-- Converted DEF outputs:
+- 转换后的 DEF 输出：
   `binaries/converted_output/<variant>/<method>/`
 
-Examples:
+示例：
 
 - `binaries/converted_input/default/aes.input`
 - `binaries/converted_input/default/bp_quad.input`
@@ -159,25 +158,25 @@ Examples:
 - `binaries/converted_output/default/cadb1038/ariane133.def`
 - `binaries/converted_output/inflated/tcad25/bp.def`
 
-## LoL Evaluation
+## LoL 评估
 
-`Place-LoL` does not do the final evaluation. After DEF conversion, the final outputs are:
+`Place-LoL` 不做最终评估。DEF 转换完成后，最终输出为：
 
 ```text
 Place-LoL/binaries/converted_output/<variant>/<method>/*.def
 ```
 
-These DEFs are later consumed by `OpenROAD-3D` for backend implementation and evaluation.
+这些 DEF 之后由 `OpenROAD-3D` 消费，用于后端实现与评估。
 
-So the full flow is:
+因此完整流程是：
 
-1. generate LoL inputs in `Place-LoL`
-2. run a LoL placer in `binaries/`
-3. convert outputs to DEF in `Place-LoL`
-4. evaluate the DEFs in `OpenROAD-3D`
+1. 在 `Place-LoL` 生成 LoL 输入
+2. 在 `binaries/` 运行 LoL 布局器
+3. 在 `Place-LoL` 把输出转换为 DEF
+4. 在 `OpenROAD-3D` 评估这些 DEF
 
-## Notes
+## 备注
 
-- Contest-specific evaluator helpers and per-placer notes are documented under:
+- 大赛专用的评估器辅助脚本与各布局器说明见：
   [iccad2022](./binaries/iccad2022/README.md)
   [iccad2023](./binaries/iccad2023/README.md)

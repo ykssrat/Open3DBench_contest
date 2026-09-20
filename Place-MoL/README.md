@@ -1,48 +1,48 @@
 # Place-MoL
 
-Memory-on-logic (MoL) placement flow in Open3DBench. This repository covers the placement-centric part of the MoL flow for face-to-face 3D integration, where the bottom die mainly hosts logic and the top die hosts memory macros. It takes benchmark cases and produces MoL placement results that can later be evaluated in `OpenROAD-3D`.
+Open3DBench 中的 memory-on-logic（MoL）布局流程。本仓库覆盖面对面 3D 集成中 MoL 流程的布局部分：下 die 主要放逻辑，上 die 放存储宏单元。它读入基准用例，产出可随后在 `OpenROAD-3D` 中评估的 MoL 布局结果。
 
-The main flow supports:
+主流程支持：
 
-- **Partition**: split macros between top and bottom dies with `GNN`, `min-cut`, or `max-cut`
-- **Macro placement**: either an analytical pseudo-3D method that prioritizes wirelength, or a tiling method that prioritizes regularity
-- **Legalization**: grid-based macro legalization after continuous or greedy placement
-- **Cell placement**: DREAMPlace-based bottom-die cell placement with top-die macros projected as fixed obstacles
+- **划分（Partition）**：用 `GNN`、`min-cut` 或 `max-cut` 把宏单元划分到上、下两个 die
+- **宏布局**：要么用以线长优先的解析式伪 3D 方法，要么用以规整性优先的平铺（tiling）方法
+- **合法化**：连续或贪心布局之后做基于网格的宏合法化
+- **单元布局**：基于 DREAMPlace 的下 die 单元布局，上 die 宏单元投影为固定障碍
 
-Method naming:
+方法命名：
 
-- `mol-analytical` corresponds to the analytical pseudo-3D macro placement strategy
-- `mol-tiling` corresponds to the tiling-based macro placement strategy
+- `mol-analytical` 对应解析式伪 3D 宏布局策略
+- `mol-tiling` 对应基于平铺的宏布局策略
 
-## Repository Layout
+## 目录结构
 
 ```text
 Place-MoL/
-├── benchmarks/              # Runtime benchmark data used by the 3D flow
-│   ├── nangate45/           # LEF/LIB and related technology files
-│   └── or_3D/               # 3D benchmark case inputs
-├── config/                  # 3D JSON configs
-├── scripts/                 # Entry scripts
-├── src/                     # 3D placement code
-├── DREAMPlace/              # DREAMPlace submodule / build tree
-└── start_docker_place.sh    # Docker launch helper
+├── benchmarks/              # 3D 流程运行所需的基准数据
+│   ├── nangate45/           # LEF/LIB 及相关工艺文件
+│   └── or_3D/               # 3D 基准用例输入
+├── config/                  # 3D JSON 配置
+├── scripts/                 # 入口脚本
+├── src/                     # 3D 布局代码
+├── DREAMPlace/              # DREAMPlace 子模块 / 构建树
+└── start_docker_place.sh    # Docker 启动脚本
 ```
 
-## Installation
+## 安装
 
-### 1. Get Docker image
+### 1. 获取 Docker 镜像
 
-(It is shared with Place-LoL, so if you have pulled one during Place-LoL, you don't have to pull again here)
+（与 Place-LoL 共用，如果在 Place-LoL 已拉取过则无需重复）
 
 ```bash
 docker pull shiyunqi/open3dbench:place
 ```
 
-### 2. Get benchmark data
+### 2. 获取基准数据
 
-Download `benchmark_mol.tar.gz` from [Google Drive](https://drive.google.com/file/d/1RXBa9W5b28w_sv0u6hjv4-57EDpPo7xK/view?usp=sharing) and extract it under the current directory:
+从 [Google Drive](https://drive.google.com/file/d/1RXBa9W5b28w_sv0u6hjv4-57EDpPo7xK/view?usp=sharing) 下载 `benchmark_mol.tar.gz` 并解压到当前目录：
 
-The downloaded file is `benchmark_mol.tar.gz`. After extraction and renaming, the directory should be `benchmarks/`.
+下载的文件为 `benchmark_mol.tar.gz`。解压并重命名后，目录应为 `benchmarks/`。
 
 ```bash
 cd Place-MoL
@@ -51,29 +51,29 @@ tar -xzf benchmark_mol.tar.gz -C .
 mv benchmark_mol benchmarks
 ```
 
-### 3. Launch container
+### 3. 启动容器
 
-Run from the `Place-MoL` root:
+从 `Place-MoL` 根目录运行：
 
 ```bash
 cd Place-MoL
 ./start_docker_place.sh
 ```
 
-Inside the container, the `Place-MoL` root is mounted at `/workspace`.
+容器内，`Place-MoL` 根目录挂载在 `/workspace`。
 
-## Usage
+## 用法
 
-All commands below should be run from the `Place-MoL` root.
-Inside Docker, this means running them from `/workspace`.
+以下命令均应在 `Place-MoL` 根目录下执行。
+在 Docker 内，即从 `/workspace` 执行。
 
-### Analytical MoL
+### 解析式 MoL
 
 ```bash
 python src/place_3d/main.py --benchmark=<benchmark> --seed=3 --config_file=<config_json>
 ```
 
-Examples:
+示例：
 
 ```bash
 python src/place_3d/main.py --benchmark=ariane133 --seed=3 --config_file=or_3D.json
@@ -82,75 +82,74 @@ python src/place_3d/main.py --benchmark=bp_be --seed=3 --config_file=or_3D_bp_be
 python src/place_3d/main.py --benchmark=swerv_wrapper --seed=3 --config_file=or_3D_swerv.json
 ```
 
-This flow builds a 2D prototype, refines bottom-die macro positions, legalizes them, optimizes top-die macro coordinates, legalizes again, and finally runs bottom-die cell placement.
-
-### Tiling MoL
+该流程构建 2D 原型、细化下 die 宏位置并合法化、优化上 die 宏坐标并再次合法化，最后做下 die 单元布局。
+### 平铺 MoL
 
 ```bash
 python src/place_3d/main_greedy.py --benchmark=<benchmark> --seed=3 --config_file=<config_json>
 ```
 
-Examples:
+示例：
 
 ```bash
 python src/place_3d/main_greedy.py --benchmark=ariane133 --seed=3 --config_file=or_3D.json
 python src/place_3d/main_greedy.py --benchmark=bp_quad --seed=42 --config_file=or_3D_bp_quad.json
 ```
 
-Compared with the analytical flow, this method uses a skyline-style packing procedure to obtain a more regular macro layout, then runs bottom-die cell placement.
+与解析式流程相比，该方法使用 skyline 式装箱过程得到更规整的宏布局，然后做下 die 单元布局。
 
-### Batch Experiments
+### 批量实验
 
-Analytical placement flow:
+解析式布局流程：
 
 ```bash
 ./scripts/experiments_mol_analytical.sh
 ```
 
-Tiling placement flow:
+平铺布局流程：
 
 ```bash
 ./scripts/experiments_mol_tiling.sh
 ```
 
-These scripts will:
+这些脚本会：
 
-- build DREAMPlace under `DREAMPlace/build/`
-- install DREAMPlace into `DREAMPlace/install/`
-- run the selected 3D benchmarks
+- 在 `DREAMPlace/build/` 下构建 DREAMPlace
+- 将 DREAMPlace 安装到 `DREAMPlace/install/`
+- 运行所选的 3D 基准用例
 
-After a run, generated outputs are written under `results/`, and the temporary build tree is recreated under `DREAMPlace/build/`.
+运行后，生成的输出写在 `results/`，临时构建树重建于 `DREAMPlace/build/`。
 
-## Pipeline Flow
+## 流水线
 
 ### `mol-analytical`
 
 `src/place_3d/main.py`
 
-1. Partition macros into upper and bottom dies
-2. Generate 2D prototype placement
-3. Refine bottom-die macro placement
-4. Legalize bottom-die macros
-5. Place upper-die macros
-6. Legalize upper-die macros
-7. Run cell placement with fixed macros
-8. Run cell legalization
+1. 将宏单元划分到上、下 die
+2. 生成 2D 原型布局
+3. 细化下 die 宏布局
+4. 下 die 宏合法化
+5. 上 die 宏布局
+6. 上 die 宏合法化
+7. 固定宏单元后做单元布局
+8. 单元合法化
 
 ### `mol-tiling`
 
 `src/place_3d/main_greedy.py`
 
-1. Partition macros into upper and bottom dies
-2. Place upper-die macros with greedy skyline
-3. Place bottom-die macros with greedy skyline
-4. Run cell placement with fixed macros
-5. Run cell legalization
+1. 将宏单元划分到上、下 die
+2. 贪心 skyline 上 die 宏布局
+3. 贪心 skyline 下 die 宏布局
+4. 固定宏单元后做单元布局
+5. 单元合法化
 
-## Configuration
+## 配置
 
-Configuration files are under `config/`.
+配置文件在 `config/` 下。
 
-Available configs:
+可用配置：
 
 - `or_3D.json`
 - `or_3D_bp_quad.json`
@@ -158,25 +157,25 @@ Available configs:
 - `or_3D_bp_fe.json`
 - `or_3D_swerv.json`
 
-Config usage:
+配置用法：
 
-- `or_3D.json` is the default config for the common cases
-- dedicated configs are used only for the special cases listed above
+- `or_3D.json` 是通用用例的默认配置
+- 专用配置仅用于上面列出的特殊用例
 
-Key options:
+关键选项：
 
-- `partition_params.method`: `GNN`, `min-cut`, or `max-cut`
-- `partition_params.GNN`: GNN training hyperparameters
-- `enable_bottom_die_refinement`: enable or disable bottom-die refinement
-- `macro_refine_params`: main-flow refinement settings
-- `macro_place_params`: macro placement settings
-- `macro_legalize_params`: legalization settings
+- `partition_params.method`：`GNN`、`min-cut` 或 `max-cut`
+- `partition_params.GNN`：GNN 训练超参数
+- `enable_bottom_die_refinement`：启用/关闭下 die 细化
+- `macro_refine_params`：主流程细化设置
+- `macro_place_params`：宏布局设置
+- `macro_legalize_params`：合法化设置
 
-## Output
+## 输出
 
-Results are written under `results/`.
+结果写在 `results/` 下。
 
-Typical output directories:
+典型输出目录：
 
 - `results/mol-analytical/`
 - `results/mol-analytical-min-cut/`
@@ -185,10 +184,10 @@ Typical output directories:
 - `results/mol-tiling-min-cut/`
 - `results/mol-tiling-max-cut/`
 
-Typical final files:
+典型最终文件：
 
 - `mol_final/<design>_suffixed.def`
 - `mol_final/<design>_legalized.png`
 - `mol_final/mem_on_logic_results.csv`
 
-These DEFs are the MoL placement outputs later consumed by `OpenROAD-3D` for routing, timing analysis, and thermal evaluation.
+这些 DEF 是 MoL 布局输出，之后由 `OpenROAD-3D` 消费，用于布线、时序分析与热评估。
