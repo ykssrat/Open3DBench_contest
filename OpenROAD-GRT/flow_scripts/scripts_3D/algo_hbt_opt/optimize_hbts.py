@@ -80,4 +80,11 @@ def main():
 
 
 if __name__ == "__main__":
+    # 关键: 官方 global_route.tcl 用 Tcl exec 调用本脚本, 而 Tcl exec 只要
+    # 命令往 stderr 写了东西就判定为失败(哪怕退出码是 0), 直接 make Error 1.
+    # 求解器属于"锦上添花", 绝不能因此打断流程 -> 把 stderr 全部并到 stdout.
+    try:
+        sys.stderr = sys.stdout
+    except Exception:
+        pass
     sys.exit(main())

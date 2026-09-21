@@ -501,9 +501,10 @@ def run(results_dir, iters=None, beta=None, eps_move=None, radius=None):
     if sites_list is None:
         log("export_free_sites.csv 缺失 -> 按 die+宏 合成格点")
         sites_list = synthesize_sites(hbts, (bx0, by0, bx1, by1), meta, macros)
-    if np is None:
+    if np is None or os.environ.get("HBT_FORCE_SPARSE"):
         # 官方容器没有 numpy: 走零依赖稀疏路径
-        log("numpy 不可用 -> 稀疏路径")
+        log("numpy 不可用(%s) -> 稀疏路径"
+            % ("强制" if np is not None else "确实缺失"))
         return run_sparse(hbts, sites_list, meta, results_dir,
                           iters=iters, beta=beta, eps_move=eps_move,
                           radius=radius)
