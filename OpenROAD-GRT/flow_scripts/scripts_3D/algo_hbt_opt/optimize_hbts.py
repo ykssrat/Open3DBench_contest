@@ -45,6 +45,10 @@ def fallback_original(results_dir):
     if not rows:
         rows = _read_xy(os.path.join(results_dir, "best_hbt_locations.csv"), "BestX", "BestY")
     out = os.path.join(results_dir, "best_hbt_locations.csv")
+    if not rows:
+        # 一个坐标都拿不到: 绝不写出空文件(会让下游拿到空 HBT 表), 保留原状并告警
+        print("[optimize_hbts] FALLBACK 无可用坐标 -> 不写 best_hbt_locations.csv", flush=True)
+        return None
     with open(out, "w", newline="\n") as f:
         f.write("InstName,BestX,BestY\n")
         for n, x, y in rows:
