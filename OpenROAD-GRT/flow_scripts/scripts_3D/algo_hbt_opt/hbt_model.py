@@ -104,42 +104,72 @@ def derive_pitch(values):
 
 
 # ---------------------------------------------------------------- 拥塞价格
-def density_prices(site_ij, chosen, shape, radius, lam):
-    """给定本轮被占用的格点, 返回每个候选格点的拥塞价格 rho.
+def density_prices(site_cells, chosen, radius, lam, want=None):
+    """给定本轮被占用的格点, 返回每个格点的拥塞价格 rho.
 
-    site_ij : (m,2) int, 每个候选格点的 (i,j) 网格坐标
-    chosen   : (k,)   本轮被占用的候选格点下标
-    shape    : (nI, nJ) 网格尺寸
-    radius   : 统计窗口半径(格点数)
-    lam      : 价格强度(自标定)
+    纯 Python 实现(官方容器无 numpy/scipy): 稀疏地把每个被占用格点的
+    (2r+1)^2 邻域计数摊到哈希表里, 复杂度 O(被占用数 * (2r+1)^2),
+    比"建全网格再做盒式滤波"小一个量级。
+
+    site_cells : [(i, j), ...] 每个格点的网格坐标
+    chosen     : 本轮被占用的格点下标
+    radius     : 统计窗口半径(格点数)
+    lam        : 价格强度(自标定)
+    want       : 只在这些下标上返回(候选格点), 默认全部
     """
-    import numpy as np
-
-    g = np.zeros(shape, dtype=np.float64)
-    if len(chosen):
-        g[site_ij[chosen, 0], site_ij[chosen, 1]] = 1.0
-    try:
-        from scipy.ndimage import uniform_filter
-        d = uniform_filter(g, size=2 * radius + 1, mode="constant")
-    except Exception:
-        # 无 scipy: 用 separable 累积和做盒式滤波
-        p = np.zeros((shape[0] + 1, shape[1] + 1), dtype=np.float64)
-        p[1:, 1:] = g
-        c = p.cumsum(0).cumsum(1)
-        r = radius
-        d = np.zeros(shape, dtype=np.float64)
-        for i in range(shape[0]):
-            i0 = max(0, i - r)
-            i1 = min(shape[0], i + r + 1)
-            for j in range(shape[1]):
-                j0 = max(0, j - r)
-                j1 = min(shape[1], j + r + 1)
-                d[i, j] = (c[i1, j1] - c[i0, j1] - c[i1, j0] + c[i0, j0])
-    dens = d[site_ij[:, 0], site_ij[:, 1]]
-    mx = float(dens.max()) if dens.size else 0.0
+    r = int(radius)
+    dens = {}
+    for k in chosen:
+        ci, cj = site_cells[k]
+        for di in range(-r, r + 1):
+            a = ci + di
+            for dj in range(-r, r + 1):
+                key = (a, cj + dj)
+                dens[key] = dens.get(key, 0) + 1
+    if want is None:
+        want = range(len(site_cells))
+    vals = [float(dens.get(site_cells[k], 0)) for k in want]
+    mx = max(vals) if vals else 0.0
     if mx <= 0:
-        return np.zeros(site_ij.shape[0]), dens
-    return lam * (dens / mx), dens
+        return [0.0] * len(vals), vals
+    return [lam * (v / mx) for v in vals], vals
+
+
+def stdev(vals):
+    """样本标准差(纯 Python, 避免依赖 numpy)."""
+    n = len(vals)
+    if n == 0:
+        return 0.0
+    mu = sum(vals) / n
+    return (sum((v - mu) ** 2 for v in vals) / n) ** 0.5
+
+
+def median(vals):
+    vs = sorted(vals)
+    n = len(vs)
+    if n == 0:
+        return 0.0
+    return vs[n // 2] if n % 2 else 0.5 * (vs[n // 2 - 1] + vs[n // 2])
+
+
+def calibrate_lambda_local(rows_cost, rows_unit, alpha=None):
+    """按"同一 HBT 内部"的候选离散度标定价格强度(推荐用法).
+
+    为什么不用全局离散度: 跨 HBT 的基础代价差异主要来自网的大小(差几个量级),
+    而决定是否搬动的是"同一 HBT 的各个候选之间"的代价差 —— 用全局 std 标定
+    会把价格放大几十倍, 反过来压死线长项. 这里取每个 HBT 内部 std 的中位数.
+
+    rows_cost : 每个 HBT 在其候选格点上的基础代价列表
+    rows_unit : 同上, 但为归一化密度(0~1)
+    """
+    if alpha is None:
+        alpha = float(os.environ.get("HBT_CONGESTION_ALPHA", "0.35"))
+    sb = median([stdev(r) for r in rows_cost if len(r) > 1])
+    su = median([stdev(r) for r in rows_unit if len(r) > 1])
+    if sb <= 0:
+        return 0.0
+    su = max(su, 0.02)          # 密度几乎均匀时防止价格炸掉
+    return alpha * sb / su
 
 
 def calibrate_lambda(base_costs, dens_samples):
@@ -147,11 +177,13 @@ def calibrate_lambda(base_costs, dens_samples):
 
     不写死任何绝对值, 因此对不同规模/不同 die 的隐藏用例都成立.
     """
-    import numpy as np
-
+    # 注意: 传入的必须是"价格项本身"的样本(即归一化密度 unit, 取值 0~1),
+    # 不能传原始窗口计数 —— 两者差一个 max(dens) 因子, 传错会让 lambda 放大几十倍.
     alpha = float(os.environ.get("HBT_CONGESTION_ALPHA", "0.35"))
-    sb = float(np.std(base_costs)) if len(base_costs) else 0.0
-    sd = float(np.std(dens_samples)) if len(dens_samples) else 0.0
-    if sd <= 1e-12 or sb <= 0:
+    sb = stdev(list(base_costs)) if len(base_costs) else 0.0
+    sd = stdev(list(dens_samples)) if len(dens_samples) else 0.0
+    if sb <= 0:
         return 0.0
+    # 密度几乎均匀时 sd 会趋于 0, 不设下限会让价格炸掉
+    sd = max(sd, 0.02)
     return alpha * sb / sd

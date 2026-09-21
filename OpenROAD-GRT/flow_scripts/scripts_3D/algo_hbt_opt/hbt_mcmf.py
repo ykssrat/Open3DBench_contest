@@ -258,7 +258,9 @@ def solve_assignment(arcs, n_left, n_right, backend="auto", verbose=True):
 
     backends = []
     if backend == "auto":
-        backends = ["ortools", "scipy", "pure"]
+        # auction 放在 pure 之前: 纯 Python MCMF 每个流单位一次 Dijkstra,
+        # 上千 HBT 时要几分钟; 拍卖是秒级(差距 <0.1%, 见 hbt_auction 对拍)
+        backends = ["ortools", "scipy", "auction", "pure"]
     else:
         backends = [backend]
 
@@ -269,6 +271,9 @@ def solve_assignment(arcs, n_left, n_right, backend="auto", verbose=True):
                 a, c = _solve_ortools(arcs, n_left, n_right)
             elif b == "scipy":
                 a, c = _solve_scipy(arcs, n_left, n_right)
+            elif b == "auction":
+                from hbt_auction import solve_auction_pruned
+                a, c = solve_auction_pruned(arcs, n_left, n_right)
             elif b == "pure":
                 a, c = _solve_pure(arcs, n_left, n_right)
             else:
@@ -302,6 +307,7 @@ def probe_backends():
         ok.append("scipy")
     except Exception:
         pass
+    ok.append("auction")
     ok.append("pure")
     return ok
 
@@ -313,7 +319,7 @@ if __name__ == "__main__":
     # 贪心若先给 h0 选 s0, 则 h1 只能 s1=100, 总 101; 最优是 h0->s1, h1->s0 = 4
     arcs = [(0, 0, 1.0), (0, 1, 2.0), (1, 0, 2.0), (1, 1, 100.0)]
     print("backends:", probe_backends())
-    for b in ["ortools", "scipy", "pure"]:
+    for b in ["ortools", "scipy", "auction", "pure"]:
         try:
             a, c = solve_assignment(arcs, 2, 2, backend=b, verbose=False)
             print("%-8s assign=%s cost=%.3f %s" % (b, a, c, "OK" if abs(c - 4.0) < 1e-9 else "WRONG"))
