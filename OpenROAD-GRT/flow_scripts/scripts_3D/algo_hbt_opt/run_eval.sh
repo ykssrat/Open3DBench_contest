@@ -47,6 +47,10 @@ if [ "${LABEL}" = "baseline" ]; then
 else
   export GRT_PREPARE_TCL="${ALGO_CT}/grt_prepare.tcl"
 fi
+
+# 两 die GRT pass 并发(upper 子进程与主进程 bottom pass 并行), 只读同一份输入 ODB、
+# 写各自独立的 guide/log, 路由结果不变仅压墙钟时间; 设 GRT_PARALLEL_PASSES=0 可退回串行.
+export GRT_PARALLEL_PASSES="${GRT_PARALLEL_PASSES:-1}"
 # 注意: 不要覆盖 RESULTS_DIR —— 它由官方流程自己决定,
 # grt_prepare.tcl 会把求解器导出目录强制统一到同一个 results_dir.
 

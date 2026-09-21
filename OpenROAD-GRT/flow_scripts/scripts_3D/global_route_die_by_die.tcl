@@ -116,6 +116,29 @@ proc route_pass_subprocess {net_list_path guide_out min_layer max_layer pass_lab
   exec [openroad_exe] -exit -no_init $pass_script > $log_file 2>&1
 }
 
+# Async variant: spawn the pass subprocess now, hand back a pipe whose close()
+# joins the child and reports its exit status. The child logs to its own file,
+# so the pipe never carries data and cannot deadlock on a full buffer.
+proc spawn_pass_subprocess_async {net_list_path guide_out min_layer max_layer pass_label} {
+  set ::env(GRT_PASS_NET_LIST) $net_list_path
+  set ::env(GRT_PASS_GUIDE_OUT) $guide_out
+  set ::env(GRT_PASS_MIN_LAYER) $min_layer
+  set ::env(GRT_PASS_MAX_LAYER) $max_layer
+  set log_file $::env(LOG_DIR)/grt_pass_${pass_label}.log
+  set pass_script $::env(SCRIPTS_DIR)/../scripts_3D/global_route_single_pass.tcl
+  puts "Die-isolated async subprocess pass $pass_label ($min_layer-$max_layer) -> $guide_out"
+  set exe [openroad_exe]
+  set sh_cmd "exec \"$exe\" -exit -no_init \"$pass_script\" > \"$log_file\" 2>&1"
+  return [open "|[list sh -c $sh_cmd]" r]
+}
+
+proc wait_pass_subprocess {pipe pass_label} {
+  if {[catch {close $pipe} err]} {
+    error "GRT pass $pass_label failed: $err"
+  }
+  puts "GRT pass $pass_label completed"
+}
+
 proc merge_route_guide_files {output_guide guide_inputs} {
   set merge_py $::env(SCRIPTS_DIR)/../scripts_3D/merge_route_guides.py
   set cmd [linsert $guide_inputs 0 $merge_py $output_guide]
@@ -182,6 +205,28 @@ puts "Die-by-die GRT: bottom=[llength $bottom_nets] upper=[llength $upper_nets]"
 puts "  bottom layers: $bot_min-$bot_max"
 puts "  upper layers:  $top_min-$top_max"
 
+# --- Pass scheduling --------------------------------------------------------
+# Serial (default): bottom pass runs in this process, then the upper-die
+#   subprocess runs to completion (blocking exec).
+# Parallel (GRT_PARALLEL_PASSES=1): spawn the upper-die subprocess first, run
+#   the bottom pass in this process while it works, then join. Both passes
+#   only read the shared GRT input ODB and write disjoint guide/log/report
+#   files, so concurrency changes wall time only, never routing results.
+set parallel_passes 0
+if {[info exists ::env(GRT_PARALLEL_PASSES)]} {
+  set v $::env(GRT_PARALLEL_PASSES)
+  if {$v ne "" && $v ne "0" && [string tolower $v] ne "off" && [string tolower $v] ne "false"} {
+    set parallel_passes 1
+  }
+}
+
+set upper_pipe ""
+if {$parallel_passes} {
+  puts "GRT parallel passes enabled (GRT_PARALLEL_PASSES=1)"
+  set upper_pipe [spawn_pass_subprocess_async $list_dir/upper_2d.txt \
+    $::env(RESULTS_DIR)/route_upper.guide $top_min $top_max upper]
+}
+
 # --- Pass 1: bottom die (only bottom metal visible) ---
 configure_die_routing_layers $bot_min $bot_max
 apply_layer_ranges $bottom_nets $bot_min $bot_max
@@ -192,8 +237,12 @@ global_route -guide_file $::env(RESULTS_DIR)/route_bottom.guide \
   {*}$grt_args
 
 # --- Pass 2: upper die (isolated subprocess, only upper metal visible) ---
-route_pass_subprocess $list_dir/upper_2d.txt \
-  $::env(RESULTS_DIR)/route_upper.guide $top_min $top_max upper
+if {$parallel_passes} {
+  wait_pass_subprocess $upper_pipe upper
+} else {
+  route_pass_subprocess $list_dir/upper_2d.txt \
+    $::env(RESULTS_DIR)/route_upper.guide $top_min $top_max upper
+}
 
 set merged_guide $::env(RESULTS_DIR)/route.guide
 merge_route_guide_files $merged_guide [list \
