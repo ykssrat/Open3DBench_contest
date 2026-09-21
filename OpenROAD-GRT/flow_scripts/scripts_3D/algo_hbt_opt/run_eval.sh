@@ -22,6 +22,16 @@ ALGO_HOST="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "${ALGO_HOST}/../../../../" && pwd)"
 RUNNER="${ROOT}/scripts/flow/contest_env.sh"
 
+# contest_env.sh 的执行位会被 git reset --hard 抹掉(仓库里若以 100644 记录),
+# 以 "Permission denied"(rc=126) 静默中断整个评测. 这里退化成 bash 显式调用.
+runner() {
+  if [ -x "${RUNNER}" ]; then
+    "${RUNNER}" "$@"
+  else
+    bash "${RUNNER}" "$@"
+  fi
+}
+
 # 容器内路径(仓库固定挂在 /workspace/Open3DBench)
 CONTEST_ROOT_CT=/workspace/Open3DBench
 INPUT="${CONTEST_ROOT_CT}/input/open3dbench_8cases_post_hbt_input_20260724"
@@ -46,13 +56,13 @@ echo "GRT_PREPARE_TCL=${GRT_PREPARE_TCL:-<未设置, 官方原流程>}"
 echo "=========================================================="
 
 T0=$(date +%s)
-"${RUNNER}" run-grt "${CASE}" "${INPUT}" "${LABEL}"
+runner run-grt "${CASE}" "${INPUT}" "${LABEL}"
 T1=$(date +%s)
 GRT_SEC=$((T1 - T0))
 echo "[run_eval] GRT 用时 ${GRT_SEC}s"
 
 # 注意: 传给容器的路径必须是容器内路径; 下面 score.py 读文件用的是宿主机路径
-"${RUNNER}" evaluate \
+runner evaluate \
     "${CASE}" "${INPUT}" "${CONTEST_ROOT_CT}/output/${CASE}/${LABEL}" "${CONTEST_ROOT_CT}/reports/${CASE}/${LABEL}"
 T2=$(date +%s)
 echo "[run_eval] evaluate 用时 $((T2 - T1))s"
