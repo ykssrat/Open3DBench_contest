@@ -232,7 +232,16 @@ proc get_net_pin_coords { net } {
         set inst [$iterm getInst]
         set inst_name [$inst getName]
         if {![string match "HBT_*" $inst_name] && ![string match "LS_HBT_*" $inst_name]} {
-            lassign [$inst getLocation] px py
+            # 必须取引脚真实坐标(ITerm bbox 中心), 不能取 instance 原点:
+            # macro 的原点与某个引脚能差几百 um, 用原点会让代价模型把 HBT 拖到
+            # 完全错误的位置(实测: TOP 侧 1149 个 HBT 只导出 7 个不同坐标).
+            set px -1
+            set py -1
+            if {![catch {set bb [$iterm getBBox]}] && $bb ne "NULL" && $bb ne ""} {
+                set px [expr {int(([$bb xMin] + [$bb xMax]) / 2)}]
+                set py [expr {int(([$bb yMin] + [$bb yMax]) / 2)}]
+            }
+            if {$px < 0 || $py < 0} { lassign [$inst getLocation] px py }
             set slack 999.0
             set mterm_name [[$iterm getMTerm] getName]
             catch {

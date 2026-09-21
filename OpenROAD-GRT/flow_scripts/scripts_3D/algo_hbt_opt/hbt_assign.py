@@ -481,6 +481,33 @@ def run(results_dir, iters=None, beta=None, eps_move=None, radius=None):
             log("警告: 拿不到 HBT 当前坐标 -> 无'不搬'基准, 仍会求解")
     log("HBT 数量 = %d" % len(hbts))
 
+    # ---- 控制实验: 不搬动, 原样写回 (用于量化流程/DRT 自身的波动) ----
+    if os.environ.get("HBT_NOOP"):
+        log("HBT_NOOP=1 -> 控制实验: 直接写回原位置, 不求解")
+        return [(h["name"], h["x"], h["y"]) for h in hbts
+                if h["x"] is not None] or None
+
+    # ---- 数据体检: 引脚坐标若大量重合, 说明导出的是 instance 原点而非引脚 ----
+    pin_hist = {}
+    pin_tot = 0
+    for h in hbts:
+        for key in ("bot", "top"):
+            for p in h[key]:
+                pin_tot += 1
+                kk = (p[0], p[1])
+                pin_hist[kk] = pin_hist.get(kk, 0) + 1
+    if pin_tot:
+        common, cnt = max(pin_hist.items(), key=lambda kv: kv[1])
+        share = cnt / float(pin_tot)
+        log("引脚坐标去重 = %d / %d 条; 最高频坐标 %s 出现 %d 次 (%.1f%%)"
+            % (len(pin_hist), pin_tot, common, cnt, share * 100.0))
+        if (share > float(os.environ.get("HBT_DEGENERATE_SHARE", "0.25"))
+                and not os.environ.get("HBT_ALLOW_DEGENERATE")):
+            log("引脚坐标严重重合 -> 导出的是 instance 原点而非引脚, 代价模型不可信;"
+                " 回退为不搬动 (确认数据无误后可设 HBT_ALLOW_DEGENERATE=1 强行求解)")
+            return [(h["name"], h["x"], h["y"]) for h in hbts
+                    if h["x"] is not None] or None
+
     meta = load_meta(results_dir)
     try:
         bx0, by0, bx1, by1 = [int(v) for v in
